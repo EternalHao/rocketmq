@@ -36,7 +36,11 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
 
 /**
- * Queue consumption snapshot
+ * 从Broker获得的消息，因为是提交到线程池里并行执行，很难监控和控制执行状态，比如如何获得当前消息堆积的数量，
+ * 如何解决处理超时情况等。RocketMQ定义了一个快照类ProcessQueue来解决这些问题，在PushConsumer运行的时候，
+ * 每个Message Queue都会有一个对应的ProcessQueue对象，保存了这个Message Queue消息处理状态的快照
+ *
+ * 有了ProcessQueue对象，可以随时停止、启动消息的消费，同时也可用于帮助实现顺序消费消息
  */
 public class ProcessQueue {
     public final static long REBALANCE_LOCK_MAX_LIVE_TIME =
@@ -45,6 +49,10 @@ public class ProcessQueue {
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final InternalLogger log = ClientLogger.getLog();
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
+    /**
+     * key : MessageQueue属性offset
+     * value : 消息内容的引用
+     */
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
     private final AtomicLong msgCount = new AtomicLong();
     private final AtomicLong msgSize = new AtomicLong();

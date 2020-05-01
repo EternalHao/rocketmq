@@ -242,7 +242,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     public boolean rejectRequest() {
         return false;
     }
-
+    // 处理来自客户端的创建Topic请求
     private synchronized RemotingCommand updateAndCreateTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);

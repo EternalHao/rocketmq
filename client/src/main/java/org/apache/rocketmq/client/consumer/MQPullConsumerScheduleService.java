@@ -141,6 +141,7 @@ public class MQPullConsumerScheduleService {
         this.defaultMQPullConsumer.setMessageModel(messageModel);
     }
 
+    // 实现负载均衡
     class MessageQueueListenerImpl implements MessageQueueListener {
         @Override
         public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {

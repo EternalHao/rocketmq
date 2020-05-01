@@ -418,6 +418,10 @@ public class BrokerController {
             }
 
             if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+                /**
+                 * 当Broker角色是Slave的时候，MasterAddr的值会被正确设置，
+                 * 这样HAService在启动的时候，在HAClient这个内部类中，connectMaster会被正确执行
+                 */
                 if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
                     if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= 6) {
                         this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());

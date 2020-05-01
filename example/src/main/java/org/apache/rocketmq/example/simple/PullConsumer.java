@@ -32,12 +32,14 @@ public class PullConsumer {
         consumer.setNamesrvAddr("127.0.0.1:9876");
         consumer.start();
 
+        // 获取topic 对应的 broker
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("broker-a");
         for (MessageQueue mq : mqs) {
             System.out.printf("Consume from the queue: %s%n", mq);
             SINGLE_MQ:
             while (true) {
                 try {
+                    // 从broker上拉取消息
                     PullResult pullResult =
                         consumer.pullBlockIfNotFound(mq, null, getMessageQueueOffset(mq), 32);
                     System.out.printf("%s%n", pullResult);

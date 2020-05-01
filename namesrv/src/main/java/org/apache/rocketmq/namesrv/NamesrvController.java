@@ -79,11 +79,17 @@ public class NamesrvController {
 
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
+        // 启动了一个默认是8个线程的线程池（private int serverWorkerThreads=8）
         this.remotingExecutor =
             Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
         this.registerProcessor();
 
+        /**
+         * NameServer还有定时检查时间戳的逻辑，Broker向NameServer发送的心跳会更新时间戳，
+         * 当NameServer检查到时间戳长时间没有更新后，便会触发清理逻辑
+         * 每10秒检查一次，时间戳超过2分钟则认为Broker已失效
+         */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -92,6 +98,9 @@ public class NamesrvController {
             }
         }, 5, 10, TimeUnit.SECONDS);
 
+        /**
+         * 打印配置信息
+         */
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override

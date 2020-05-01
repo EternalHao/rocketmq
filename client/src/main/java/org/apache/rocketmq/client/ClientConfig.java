@@ -93,6 +93,7 @@ public class ClientConfig {
     }
 
     public void changeInstanceNameToPID() {
+        // 如果创建Consumer或者Producer类型的时候不手动指定InstanceName，进程中只会有一个MQClientInstance对象
         if (this.instanceName.equals("DEFAULT")) {
             this.instanceName = String.valueOf(UtilAll.getPid());
         }

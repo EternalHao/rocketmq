@@ -18,14 +18,24 @@ package org.apache.rocketmq.example.simple;
 
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class Producer {
     public static void main(String[] args) throws MQClientException, InterruptedException {
-
+        // 设置GroupName
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
+
+        // 设置InstanceName，当一个Jvm需要启动多个Producer的时候，通过设置不同的InstanceName来区分，不设置的话系统使用默认名称“DEFAULT”
+        producer.setInstanceName("wangwu");
+
+        // 设置发送失败重试次数，当网络出现异常的时候，这个次数影响消息的重复投递次数。想保证不丢消息，可以设置多重试几次
+        producer.setRetryTimesWhenSendFailed(3);
+
+        // 设置NameServer地址
+        producer.setNamesrvAddr("192.168.100.131:9876");
         producer.start();
 
         for (int i = 0; i < 128; i++)
@@ -35,12 +45,23 @@ public class Producer {
                         "TagA",
                         "OrderID188",
                         "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
-                    SendResult sendResult = producer.send(msg);
-                    System.out.printf("%s%n", sendResult);
+
+                    producer.send(msg, new SendCallback() {
+                        @Override
+                        public void onSuccess(SendResult sendResult) {
+                            System.out.printf("%s%n", sendResult);
+                        }
+
+                        @Override
+                        public void onException(Throwable e) {
+                            e.printStackTrace();
+                        }
+                    });
                 }
 
             } catch (Exception e) {
                 e.printStackTrace();
+                Thread.sleep(1000);
             }
 
         producer.shutdown();

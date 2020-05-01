@@ -31,6 +31,9 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+/**
+ * RocketMQ各个模块间的通信，可以通过发送统一格式的自定义消息（RemotingCommand）来完成，各个模块间的通信实现简洁明了
+ */
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
     public static final String SERIALIZE_TYPE_ENV = "ROCKETMQ_SERIALIZE_TYPE";
@@ -141,6 +144,18 @@ public class RemotingCommand {
         return decode(byteBuffer);
     }
 
+
+    /**
+     * 1）第一部分是大端4个字节整数，值等于第二、三、四部分长度的总和；
+     *
+     * 2）第二部分是大端4个字节整数，值等于第三部分的长度；
+     *
+     * 3）第三部分是通过Json序列化的数据；
+     *
+     * 4）第四部分是通过应用自定义二进制序列化的数据。
+     * @param byteBuffer
+     * @return
+     */
     public static RemotingCommand decode(final ByteBuffer byteBuffer) {
         int length = byteBuffer.limit();
         int oriHeaderLen = byteBuffer.getInt();

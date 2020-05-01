@@ -85,6 +85,14 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * 无论是生产者还是消费者，在底层都要和Broker打交道，进行消息收发。
+ * 在源码层面，底层的功能被抽象成同一个类，负责和Broker打交道
+ *
+ * MQClientInstance是客户端各种类型的Consumer和Producer的底层类。
+ * 1. 从NameServer获取并保存各种配置信息，比如Topic的Route信息。
+ * 2. MQClientInstance还会通过MQClientAPIImpl类实现消息的收发，也就是从Broker获取消息或者发送消息到Broke
+ */
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
     private final InternalLogger log = ClientLogger.getLog();
@@ -98,9 +106,12 @@ public class MQClientInstance {
     private final NettyClientConfig nettyClientConfig;
     private final MQClientAPIImpl mQClientAPIImpl;
     private final MQAdminImpl mQAdminImpl;
+    // 维持从NameServer 获取的集群状态信息
     private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
     private final Lock lockNamesrv = new ReentrantLock();
     private final Lock lockHeartbeat = new ReentrantLock();
+
+    // 维持从NameServer 获取的集群状态信息
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
         new ConcurrentHashMap<String, HashMap<Long, String>>();
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable =
@@ -223,6 +234,12 @@ public class MQClientInstance {
         return mqList;
     }
 
+    /**
+     * 用来负责底层消息通信，然后启动pullMessageService和rebalanceService。在类的成员变量中，
+     * 用topicRouteTable、brokerAddrTable等来存储从NameServer中获得的集群状态信息，
+     * 并通过一个ScheduledTask来维护这些信息
+     * @throws MQClientException
+     */
     public void start() throws MQClientException {
 
         synchronized (this) {
@@ -254,6 +271,12 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 1. 获取NameServer地址
+     * 2. 更新TopicRoute地址
+     * 3. 清理离线的Broker
+     * 4. 保存消费者的offset
+     */
     private void startScheduledTask() {
         if (null == this.clientConfig.getNamesrvAddr()) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {

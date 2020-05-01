@@ -48,11 +48,33 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
+    // 读取操作多，更改操作少，所以选择读写锁能大大提高效率
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    /**
+     * key : Topic的名称
+     * value : QueueData队列，队里的长度等于这个Topic数据存储的Master Broker的个数，QueueData里存储着Broker的名称、读写queue的数量、同步标识
+     */
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+
+    /**
+     * key : BrokerName
+     * value : BrokerData存储着一个BrokerName对应的属性信息，包括所属的Cluster名称，一个Master Broker和多个Slave Broker的地址信息
+     */
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    /**
+     * key : Cluster名称
+     * value : 由BrokerName组成的集合
+     */
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    /**
+     * key : Broker所在地址，对应这一台机器
+     * value : 这台机器的实时状态包括上次更新状态的时间戳，NameServer会定期检查这个时间戳，超时没有更新就认为这个Broker无效了，将其从Broker列表里清除。
+     */
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    /**
+     * key : Broker所在地址，对应这一台机器
+     * value : 和这个Broker关联的多个Filter Server的地址
+     */
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {

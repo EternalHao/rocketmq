@@ -28,6 +28,14 @@ import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+/**
+ * RocketMQ的Broker分为Master和Slave两个角色，为了保证高可用性，
+ * Master角色的机器接收到消息后，要把内容同步到Slave机器上，这样一旦Master宕机，Slave机器依然可以提供服务
+ *
+ * slave需要和Master同步的不只是消息本身，一些元数据信息也需要同步，
+ * 比如TopicConfig信息、ConsumerOffset信息、DelayOffset和SubscriptionGroupConfig信息。
+ * Broker在启动的时候，判断自己的角色是否是Slave，是的话就启动定时同步任务
+ */
 public class SlaveSynchronize {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
@@ -45,6 +53,7 @@ public class SlaveSynchronize {
         this.masterAddr = masterAddr;
     }
 
+    // 封装RemotingCommand 自己去Master角色的Broker上面拉区信息
     public void syncAll() {
         this.syncTopicConfig();
         this.syncConsumerOffset();
@@ -76,6 +85,7 @@ public class SlaveSynchronize {
         }
     }
 
+    // 基本逻辑是组装一个RemotingCommand，底层通过Netty将消息发送到Master角色的Broker，然后获取Offset信息
     private void syncConsumerOffset() {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
